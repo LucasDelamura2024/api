@@ -40,275 +40,343 @@ app.get('/', async (req, res) => {
     }
 });
 
-// Rota para buscar todos os registros
+// ============ ROTAS FLEX_ENTRANCE ============
+
+// Listar todas as entradas
 app.get('/entries', async (req, res) => {
     try {
         const connection = await pool.getConnection();
         try {
             const [rows] = await connection.query(`
-                SELECT 
-                    id, 
-                    driver_id, 
-                    nome, 
-                    veiculo, 
-                    placa, 
-                    tipo, 
-                    status, 
-                    rota, 
-                    regiao, 
-                    saida, 
-                    timestamp, 
-                    localizacao, 
-                    latitude, 
-                    longitude, 
-                    view, 
-                    janela, 
-                    cpf,
-                    phone,
-                    doca
-                FROM flex_entrance 
+                SELECT * FROM flex_entrance 
                 ORDER BY timestamp DESC 
                 LIMIT 100
             `);
             res.json(rows);
-        } catch (queryError) {
-            console.error('Erro na consulta:', queryError);
-            res.status(500).json({ 
-                error: 'Erro ao buscar registros', 
-                details: queryError.message 
-            });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar registros', details: error.message });
         } finally {
             connection.release();
         }
-    } catch (connectionError) {
-        console.error('Erro de conexão:', connectionError);
-        res.status(500).json({ 
-            error: 'Erro de conexão com o banco de dados', 
-            details: connectionError.message 
-        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
     }
 });
 
-// Rota para buscar registros por motorista (CPF)
+// Buscar entrada por CPF
 app.get('/entries/driver/:cpf', async (req, res) => {
     try {
         const connection = await pool.getConnection();
         try {
-            const [rows] = await connection.query(`
-                SELECT 
-                    id, 
-                    driver_id, 
-                    nome, 
-                    veiculo, 
-                    placa, 
-                    tipo, 
-                    status, 
-                    rota, 
-                    regiao, 
-                    saida, 
-                    timestamp, 
-                    localizacao, 
-                    latitude, 
-                    longitude, 
-                    view, 
-                    janela, 
-                    cpf,
-                    phone,
-                    doca
-                FROM flex_entrance 
-                WHERE cpf = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 100`, 
+            const [rows] = await connection.query(
+                'SELECT * FROM flex_entrance WHERE cpf = ? ORDER BY timestamp DESC LIMIT 100',
                 [req.params.cpf]
             );
             res.json(rows);
-        } catch (queryError) {
-            console.error('Erro na consulta:', queryError);
-            res.status(500).json({ 
-                error: 'Erro ao buscar registros do motorista', 
-                details: queryError.message 
-            });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar registros', details: error.message });
         } finally {
             connection.release();
         }
-    } catch (connectionError) {
-        console.error('Erro de conexão:', connectionError);
-        res.status(500).json({ 
-            error: 'Erro de conexão com o banco de dados', 
-            details: connectionError.message 
-        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
     }
 });
 
-// Rota para buscar registros por status
+// Buscar entradas por status
 app.get('/entries/status/:status', async (req, res) => {
     try {
         const connection = await pool.getConnection();
         try {
-            const [rows] = await connection.query(`
-                SELECT 
-                    id, 
-                    driver_id, 
-                    nome, 
-                    veiculo, 
-                    placa, 
-                    tipo, 
-                    status, 
-                    rota, 
-                    regiao, 
-                    saida, 
-                    timestamp, 
-                    localizacao, 
-                    latitude, 
-                    longitude, 
-                    view, 
-                    janela, 
-                    cpf,
-                    phone,
-                    doca
-                FROM flex_entrance 
-                WHERE status = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 100`,
+            const [rows] = await connection.query(
+                'SELECT * FROM flex_entrance WHERE status = ? ORDER BY timestamp DESC LIMIT 100',
                 [req.params.status]
             );
             res.json(rows);
-        } catch (queryError) {
-            console.error('Erro na consulta:', queryError);
-            res.status(500).json({ 
-                error: 'Erro ao buscar registros por status', 
-                details: queryError.message 
-            });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar registros', details: error.message });
         } finally {
             connection.release();
         }
-    } catch (connectionError) {
-        console.error('Erro de conexão:', connectionError);
-        res.status(500).json({ 
-            error: 'Erro de conexão com o banco de dados', 
-            details: connectionError.message 
-        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
     }
 });
 
-// Rota para buscar estatísticas do dia
-app.get('/stats/today', async (req, res) => {
-    try {
-        const connection = await pool.getConnection();
-        try {
-            const [rows] = await connection.query(`
-                SELECT 
-                    COUNT(*) as total_entries,
-                    SUM(CASE WHEN status = 'aguardando' THEN 1 ELSE 0 END) as waiting,
-                    SUM(CASE WHEN status = 'em_andamento' THEN 1 ELSE 0 END) as in_progress,
-                    SUM(CASE WHEN status = 'finalizado' THEN 1 ELSE 0 END) as finished,
-                    COUNT(DISTINCT cpf) as unique_drivers
-                FROM flex_entrance 
-                WHERE DATE(timestamp) = CURDATE()
-            `);
-            res.json(rows[0]);
-        } catch (queryError) {
-            console.error('Erro na consulta:', queryError);
-            res.status(500).json({ 
-                error: 'Erro ao buscar estatísticas', 
-                details: queryError.message 
-            });
-        } finally {
-            connection.release();
-        }
-    } catch (connectionError) {
-        console.error('Erro de conexão:', connectionError);
-        res.status(500).json({ 
-            error: 'Erro de conexão com o banco de dados', 
-            details: connectionError.message 
-        });
-    }
-});
-
-// Rota para adicionar nova entrada
+// Nova entrada
 app.post('/entries', async (req, res) => {
     try {
-        const { 
-            driver_id, 
-            nome, 
-            veiculo, 
-            placa, 
-            tipo, 
-            status, 
-            rota, 
-            regiao, 
-            saida, 
-            localizacao, 
-            latitude, 
-            longitude, 
-            view, 
-            janela, 
-            cpf,
-            phone,
-            doca
-        } = req.body;
-
         const connection = await pool.getConnection();
         try {
-            const [result] = await connection.query(`
-                INSERT INTO flex_entrance (
-                    driver_id, 
-                    nome, 
-                    veiculo, 
-                    placa, 
-                    tipo, 
-                    status, 
-                    rota, 
-                    regiao, 
-                    saida, 
-                    localizacao, 
-                    latitude, 
-                    longitude, 
-                    view, 
-                    janela, 
-                    cpf,
-                    phone,
-                    doca
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    driver_id, 
-                    nome, 
-                    veiculo, 
-                    placa, 
-                    tipo, 
-                    status, 
-                    rota, 
-                    regiao, 
-                    saida, 
-                    localizacao, 
-                    latitude, 
-                    longitude, 
-                    view, 
-                    janela, 
-                    cpf,
-                    phone,
-                    doca
-                ]
+            const [result] = await connection.query(
+                'INSERT INTO flex_entrance SET ?',
+                [req.body]
             );
-            res.status(201).json({ 
-                message: 'Entrada criada com sucesso', 
-                id: result.insertId 
-            });
-        } catch (queryError) {
-            console.error('Erro na inserção:', queryError);
-            res.status(500).json({ 
-                error: 'Erro ao criar nova entrada', 
-                details: queryError.message 
-            });
+            res.status(201).json({ id: result.insertId, message: 'Entrada criada com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao criar entrada', details: error.message });
         } finally {
             connection.release();
         }
-    } catch (connectionError) {
-        console.error('Erro de conexão:', connectionError);
-        res.status(500).json({ 
-            error: 'Erro de conexão com o banco de dados', 
-            details: connectionError.message 
-        });
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// ============ ROTAS MOTORISTAS ============
+
+// Listar todos os motoristas
+app.get('/motoristas', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query('SELECT * FROM motoristas ORDER BY last_activity DESC');
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar motoristas', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Buscar motorista específico
+app.get('/motoristas/:driver_id', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query(
+                'SELECT * FROM motoristas WHERE driver_id = ?',
+                [req.params.driver_id]
+            );
+            if (rows.length === 0) {
+                res.status(404).json({ message: 'Motorista não encontrado' });
+            } else {
+                res.json(rows[0]);
+            }
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar motorista', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Novo motorista
+app.post('/motoristas', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'INSERT INTO motoristas SET ?',
+                [req.body]
+            );
+            res.status(201).json({ id: result.insertId, message: 'Motorista cadastrado com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao cadastrar motorista', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Atualizar motorista
+app.put('/motoristas/:driver_id', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'UPDATE motoristas SET ? WHERE driver_id = ?',
+                [req.body, req.params.driver_id]
+            );
+            if (result.affectedRows === 0) {
+                res.status(404).json({ message: 'Motorista não encontrado' });
+            } else {
+                res.json({ message: 'Motorista atualizado com sucesso' });
+            }
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao atualizar motorista', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// ============ ROTAS STATUS_ONTIME ============
+
+// Listar todos os status
+app.get('/status-ontime', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query('SELECT * FROM status_ontime ORDER BY timestamp DESC');
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar status', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Buscar status por motorista
+app.get('/status-ontime/driver/:driver_id', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query(
+                'SELECT * FROM status_ontime WHERE driver_id = ? ORDER BY timestamp DESC',
+                [req.params.driver_id]
+            );
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar status', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Novo status
+app.post('/status-ontime', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'INSERT INTO status_ontime SET ?',
+                [req.body]
+            );
+            res.status(201).json({ id: result.insertId, message: 'Status registrado com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao registrar status', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Atualizar status
+app.put('/status-ontime/:id', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'UPDATE status_ontime SET ? WHERE id = ?',
+                [req.body, req.params.id]
+            );
+            if (result.affectedRows === 0) {
+                res.status(404).json({ message: 'Status não encontrado' });
+            } else {
+                res.json({ message: 'Status atualizado com sucesso' });
+            }
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao atualizar status', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// ============ ROTAS STATUS_DOCA ============
+
+// Listar status de todas as docas
+app.get('/status-doca', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query('SELECT * FROM status_doca ORDER BY data_alteracao DESC');
+            res.json(rows);
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar status das docas', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Buscar status de uma doca específica
+app.get('/status-doca/:doca', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [rows] = await connection.query(
+                'SELECT * FROM status_doca WHERE doca = ?',
+                [req.params.doca]
+            );
+            if (rows.length === 0) {
+                res.status(404).json({ message: 'Doca não encontrada' });
+            } else {
+                res.json(rows[0]);
+            }
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao buscar status da doca', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Novo status de doca
+app.post('/status-doca', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'INSERT INTO status_doca SET ?',
+                [req.body]
+            );
+            res.status(201).json({ id: result.insertId, message: 'Status da doca registrado com sucesso' });
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao registrar status da doca', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
+    }
+});
+
+// Atualizar status de doca
+app.put('/status-doca/:doca', async (req, res) => {
+    try {
+        const connection = await pool.getConnection();
+        try {
+            const [result] = await connection.query(
+                'UPDATE status_doca SET ? WHERE doca = ?',
+                [req.body, req.params.doca]
+            );
+            if (result.affectedRows === 0) {
+                res.status(404).json({ message: 'Doca não encontrada' });
+            } else {
+                res.json({ message: 'Status da doca atualizado com sucesso' });
+            }
+        } catch (error) {
+            res.status(500).json({ error: 'Erro ao atualizar status da doca', details: error.message });
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro de conexão', details: error.message });
     }
 });
 
